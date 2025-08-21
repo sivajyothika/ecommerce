@@ -8,6 +8,10 @@ import com.ecommerce.sb_ecom.payload.CategoryResponseDTO;
 import com.ecommerce.sb_ecom.repositories.CategoryRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -22,12 +26,20 @@ public class CategoryServiceImpl implements CategoryService{
     private ModelMapper modelMapper;
 
     @Override
-    public CategoryResponseDTO getAllCategories() {
-        List<Category> categories = categoryRepository.findAll();
+    public CategoryResponseDTO getAllCategories(Integer pageNumber, Integer pageSize,String sortBy,String sortOrder) {
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageDetails = PageRequest.of(pageNumber,pageSize,sortByAndOrder);
+        Page<Category> categoryPage = categoryRepository.findAll(pageDetails);
+        List<Category> categories = categoryPage.getContent();
         if(categoryRepository.count()==0) throw new APIException("No Category created till now!!");
         List<CategoryDTO> categoryDTOSList = categories.stream().map(category -> modelMapper.map(category,CategoryDTO.class)).toList();
         CategoryResponseDTO categoryResponseDTO = new CategoryResponseDTO();
         categoryResponseDTO.setContents(categoryDTOSList);
+        categoryResponseDTO.setPageNumber(categoryPage.getNumber());
+        categoryResponseDTO.setPageSize(categoryPage.getSize());
+        categoryResponseDTO.setTotalElements(categoryPage.getTotalElements());
+        categoryResponseDTO.setLast(categoryPage.isLast());
+        categoryResponseDTO.setTotalPages(categoryPage.getTotalPages());
         return categoryResponseDTO;
     }
 
